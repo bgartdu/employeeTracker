@@ -14,7 +14,8 @@ const rolesByTitle = {};
 let connection = null;
 
 function clear(obj) {
-    for (let obj in arguments) {
+    for (let i in arguments) {
+        let obj = arguments[i];
         for (let key in obj) { delete obj[key]; } 
     }
 }
@@ -24,7 +25,9 @@ async function refreshDatabase() {
     const [departmentData] = await connection.execute("SELECT * FROM department;")
     const [roleData] = await connection.execute("SELECT * FROM role;")
 
-    clear(departments, departmentsByName, employees, employeesByName, roles, rolesByTitle);
+    clear(departments, departmentsByName, 
+          employees, employeesByName, employeesCountByName,
+          roles, rolesByTitle);
     
     employeeData.map( (it) => {
         const employee = Employee.from(it);
@@ -330,7 +333,181 @@ const choiceFunctions = {
             console.log("SQL error occurred");
             console.log(err);
         }
-    }
+    }, "Remove Employee": async function(){
+        const NO_REMOVAL = "--- --- Cancel Removal -----"
+        let data = await inquirer.prompt([
+            {
+                type: "list",
+                message: "which employee do you want to remove?",
+                name: "removal",
+                choices: [NO_REMOVAL, ...Object.keys(employeesByName) ]
+
+            }
+        ]);
+
+        const id = employeesByName[data.removal];
+        if (!id){
+            console.log("Cancelling removal.");
+            return;
+        }
+        const query = "DELETE FROM `employee` WHERE `id`=?";
+        const params = [ id ];
+        try {
+            let [result] = await connection.execute(query, params);
+
+            console.log("Success!");
+            console.log(result);
+            await refreshDatabase();
+        } catch (err) {
+            console.log("SQL error occurred");
+            console.log(err);
+
+            console.log("You are probable trying to delete an employee that is currently a manager.");
+            console.log("Before deleting them, make sure they are not the manager of other employees.");
+        }
+    }, "Remove Role": async function(){
+        const NO_REMOVAL = "--- --- Cancel Removal -----"
+        let data = await inquirer.prompt([
+            {
+                type: "list",
+                message: "which role do you want to remove?",
+                name: "removal",
+                choices: [NO_REMOVAL, ...Object.keys(rolesByTitle) ]
+
+            }
+        ]);
+
+        const id = rolesByTitle[data.removal];
+        if (!id){
+            console.log("Cancelling removal.");
+            return;
+        }
+        const query = "DELETE FROM `role` WHERE `id`=?";
+        const params = [ id ];
+        try {
+            let [result] = await connection.execute(query, params);
+
+            console.log("Success!");
+            console.log(result);
+            await refreshDatabase();
+        } catch (err) {
+            console.log("SQL error occurred");
+            console.log(err);
+
+            console.log("You are probably trying to delete a role that is currently in use.");
+            console.log("Before deleting them, make sure they are not the role of employees.");
+        }
+    }, "Remove Department": async function(){
+        const NO_REMOVAL = "--- --- Cancel Removal -----"
+        let data = await inquirer.prompt([
+            {
+                type: "list",
+                message: "which department do you want to remove?",
+                name: "removal",
+                choices: [NO_REMOVAL, ...Object.keys(departmentsByName) ]
+
+            }
+        ]);
+
+        const id = departmentsByName[data.removal];
+        if (!id){
+            console.log("Cancelling removal.");
+            return;
+        }
+        const query = "DELETE FROM `department` WHERE `id`=?";
+        const params = [ id ];
+        try {
+            let [result] = await connection.execute(query, params);
+
+            console.log("Success!");
+            console.log(result);
+            await refreshDatabase();
+        } catch (err) {
+            console.log("SQL error occurred");
+            console.log(err);
+
+            console.log("You are probably trying to delete a department that is currently in use.");
+            console.log("Before deleting them, make sure they are not the department of any roles.");
+        }
+    }, "Update Employee Role": async function() {
+        const NO_UPDATE = "--- --- Cancel Update -----"
+        let data = await inquirer.prompt([
+            {
+                type: "list",
+                message: "which employee do you want to update?",
+                name: "employee",
+                choices: [NO_UPDATE, ...Object.keys(employeesByName) ]
+
+            },
+            {
+                type: "list",
+                message: "which role do you want to reassign them to?",
+                name: "role",
+                choices: [NO_UPDATE, ...Object.keys(rolesByTitle) ]
+
+            }
+        ]);
+        const empID = employeesByName[data.employee]
+        const roleID = rolesByTitle[data.role];
+        if (!roleID || !empID) {
+            console.log("Cancelling removal.");
+            return;
+        }
+        const query = "UPDATE `employee` SET `role_id`=? WHERE `id`=?";
+        const params = [ roleID, empID ];
+
+        try {
+            let [result] = await connection.execute(query, params);
+
+            console.log("Success!");
+            console.log(result);
+            
+            employees[empID].role_id = roleID;
+
+        } catch (err) {
+            console.log("SQL error occurred");
+            console.log(err);
+        }
+    }, "Update Employee Manager": async function() {
+        const NO_UPDATE = "--- --- Cancel Update -----"
+        let data = await inquirer.prompt([
+            {
+                type: "list",
+                message: "which employee do you want to update?",
+                name: "employee",
+                choices: [NO_UPDATE, ...Object.keys(employeesByName) ]
+
+            },
+            {
+                type: "list",
+                message: "which role do you want to reassign them to?",
+                name: "role",
+                choices: [NO_UPDATE, ...Object.keys(rolesByTitle) ]
+
+            }
+        ]);
+        const empID = employeesByName[data.employee]
+        const roleID = rolesByTitle[data.role];
+        if (!roleID || !empID) {
+            console.log("Cancelling removal.");
+            return;
+        }
+        const query = "UPDATE `employee` SET `role_id`=? WHERE `id`=?";
+        const params = [ roleID, empID ];
+
+        try {
+            let [result] = await connection.execute(query, params);
+
+            console.log("Success!");
+            console.log(result);
+            
+            employees[empID].role_id = roleID;
+
+        } catch (err) {
+            console.log("SQL error occurred");
+            console.log(err);
+        }
+    }, 
 
 };
 
