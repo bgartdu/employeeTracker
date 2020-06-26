@@ -470,6 +470,7 @@ const choiceFunctions = {
         }
     }, "Update Employee Manager": async function() {
         const NO_UPDATE = "--- --- Cancel Update -----"
+        const NO_MANAGER = "--- --- null --- ---"
         let data = await inquirer.prompt([
             {
                 type: "list",
@@ -480,20 +481,24 @@ const choiceFunctions = {
             },
             {
                 type: "list",
-                message: "which role do you want to reassign them to?",
-                name: "role",
-                choices: [NO_UPDATE, ...Object.keys(rolesByTitle) ]
+                message: "what manager does this employee have?",
+                name: "manager",
+                choices: [NO_UPDATE, NO_MANAGER, ...Object.keys(employeesByName) ]
 
             }
         ]);
         const empID = employeesByName[data.employee]
-        const roleID = rolesByTitle[data.role];
-        if (!roleID || !empID) {
+        const managerID = employeesByName[data.manager] || ((data.manager === NO_MANAGER) ? null : undefined);
+        if ((data.manager === NO_UPDATE) || !empID) {
             console.log("Cancelling removal.");
             return;
         }
-        const query = "UPDATE `employee` SET `role_id`=? WHERE `id`=?";
-        const params = [ roleID, empID ];
+        const query = "UPDATE `employee` SET `manager_id`=? WHERE `id`=?";
+        const params = [ managerID, empID ];
+
+        if (managerID === empID) {
+            console.log("Employee may not be their own manager.")
+        }
 
         try {
             let [result] = await connection.execute(query, params);
@@ -501,7 +506,7 @@ const choiceFunctions = {
             console.log("Success!");
             console.log(result);
             
-            employees[empID].role_id = roleID;
+            employees[empID].manager_id = managerID === "null" ? -1 : managerID;
 
         } catch (err) {
             console.log("SQL error occurred");
