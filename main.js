@@ -13,6 +13,18 @@ const roles = {};
 const rolesByTitle = {};
 let connection = null;
 
+let config = {
+	host: 'localhost',
+	user: "root",
+	password: "password",
+	database: "employee_db",
+}
+try {
+	config = {...config, ...require("./config.json") }
+} catch (err) {
+	console.log("could not load config.json, using defaults")
+}
+
 function clear(obj) {
     for (let i in arguments) {
         let obj = arguments[i];
@@ -519,12 +531,7 @@ const choiceFunctions = {
 
 
 async function main() {
-    connection = await mysql.createConnection({
-        host: 'localhost',
-        user: "root",
-        password: "password",
-        database: "employee_db",
-    });
+    connection = await mysql.createConnection(config);
     
     await refreshDatabase();
     
@@ -566,8 +573,8 @@ async function main() {
             }
         ]);
         if (data.choice === "Quit") {
-            console.log("Okay, goodbye");
-            break;
+			console.log("Okay, goodbye");
+			process.exit(0);
         }
 
         const func = choiceFunctions[data.choice];
